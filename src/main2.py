@@ -140,7 +140,6 @@ model.save('src/artefatos/modelo_treinado.h5')
 """Predição"""
 
 print("Predição com modelo treinado")
-predito = model.predict(test_data)
-print("predito:", predito[0][0])
+model.predict(test_data)
 
 print("\n")
