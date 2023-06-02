@@ -1,4 +1,5 @@
 import os
+import pickle
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -41,21 +42,6 @@ print(f"\ndf_dataset.head()\n{df_dataset.head()}")
 
 print(f"\ndf_dataset.tail()\n{df_dataset.tail()}")
 
-# 
-
-# sentences = [
-#     'Rashmi likes ice cream',
-#     'Rashmi hates chocolate.'
-# ]
-
-# vectorizer = CountVectorizer(min_df=0, lowercase=False)
-# vectorizer.fit(sentences)
-# vectorizer.vocabulary_
-
-# print(f"\nvectorizer.vocabulary_:{vectorizer.vocabulary_}")
-
-# vectorizer.transform(sentences).toarray()
-
 #
 
 df_dataset_yelp = df_dataset[df_dataset['source'] == 'yelp']
@@ -68,14 +54,11 @@ X_train, X_test, y_train, y_test = train_test_split(
 vectorizer = CountVectorizer()
 vectorizer.fit(X_train)
 
+with open('src/artefatos/count_vectorizer.pkl', 'wb') as file:
+    pickle.dump(vectorizer, file)
+
 X_train = vectorizer.transform(X_train)
 X_test  = vectorizer.transform(X_test)
-
-# classifier = LogisticRegression()
-# classifier.fit(X_train, y_train)
-# score = classifier.score(X_test, y_test)
-
-# print(f"\nLogisticRegression -> Accuracy:{score}")
 
 #
 
@@ -103,21 +86,23 @@ model.save("src/artefatos/modelo_treinado_2.h5")
 
 print(f"\nPredict: {model.predict(X_test[0])}")
 
-# feature_names = vectorizer.get_feature_names_out()
-# reversed_texts = vectorizer.inverse_transform(X_test[0])
-# for i, reversed_text in enumerate(reversed_texts):
-#     print(f"Texto original {i+1}: {' '.join(reversed_text)}")
-
 # prediction
+
+# with open('src/artefatos/count_vectorizer.pkl', 'rb') as file:
+#     vectorizer = pickle.load(file)
 
 sentences = ['Rashmi likes ice cream', 'Rashmi hates chocolate.']
 
-print(f"\nSentences:{sentences}")
+for item in range(len(sentences)):
 
-vect_to_predict = vectorizer.transform(sentences).toarray()
+    print(f"Item:{item} - Sentence:{sentences[item]}")
 
-print("vect_to_predict.shape:", vect_to_predict.shape)
+    sent_to_vect_for_predict = vectorizer.transform(sentences).toarray()
 
-print(f"\nPredict: {model.predict(vect_to_predict)}")
+    # print("vect_to_predict.shape:", sent_to_vect_for_predict.shape)
+
+    print(f"Predict: {model.predict(sent_to_vect_for_predict)}")
+
+    print("\n")
 
 print("\n")

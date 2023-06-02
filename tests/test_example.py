@@ -1,7 +1,7 @@
+import pickle
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing.text import Tokenizer
 
 class Test_Example:
 
@@ -36,3 +36,26 @@ class Test_Example:
         model = load_model('src/artefatos/modelo_treinado.h5')
 
         print("predito:", model.predict(test_data)[0][0])
+
+    def test_predicao_2(self):
+
+        print("\n")
+        
+        sentences = ['Rashmi likes ice cream', 'Rashmi hates chocolate.']
+
+        print(f"Sentence:{sentences}")
+
+        with open('src/artefatos/count_vectorizer.pkl', 'rb') as file:
+            vectorizer = pickle.load(file)
+
+        vectorized_sentences = vectorizer.transform(sentences).toarray()
+
+        print("vectorized_sentences.shape:", vectorized_sentences.shape)
+
+        model = keras.models.load_model('src/artefatos/modelo_treinado_2.h5')
+
+        predicted = model.predict(vectorized_sentences)
+
+        print(f"Predict: {predicted[0][0]} - Sentense: '{sentences[0]}'")
+        print(f"Predict: {predicted[1][0]} - Sentense: '{sentences[1]}'")
+        print("\n")

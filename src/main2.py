@@ -1,145 +1,340 @@
+# https://www.kaggle.com/code/sanikamal/text-classification-with-python-and-keras
+
+# Importing Packages
+
+import os
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
 import matplotlib.pyplot as plt
+plt.style.use('ggplot')
+
 import tensorflow as tf
-from tensorflow import keras
+from tensorflow.keras.models import Sequential
+from tensorflow.keras import layers
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
 
-print("\ntf.__version__:", tf.__version__)
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.model_selection import RandomizedSearchCV
 
-"""Baixe a base de dados IMDB"""
+filepath_dict = {
+    'imdb':   'src/assets/imdb_labelled.txt',
+    'yelp':   'src/assets/yelp_labelled.txt',
+    'amazon': 'src/assets/amazon_cells_labelled.txt'
+}
 
-imdb = keras.datasets.imdb
+df_list = []
+for source, filepath in filepath_dict.items():
+    df = pd.read_csv(filepath, names=['sentence', 'label'], sep='\t')
+    df['source'] = source
+    df_list.append(df)
 
-(train_data, train_labels), (test_data, test_labels) = imdb.load_data(
-    num_words=10000)
+# df_list
 
-"""Explore os dados"""
+df = pd.concat(df_list)
+df.iloc[0]
 
-print("\nTraining entries: {}, labels: {}".format(
-    len(train_data), len(train_labels)))
+print(f"\ndf.head()\n{df.head()}\n")
 
-print("\ntrain_data[0]\n", train_data[0])
+print(f"\ndf.tail()\n{df.tail()}\n")
 
-len(train_data[0]), len(train_data[1])
+sentences = ['Rashmi likes ice cream', 'Rashmi hates chocolate.']
 
-"""Converta os inteiros de volta a palavras"""
+vectorizer = CountVectorizer(min_df=0, lowercase=False)
+vectorizer.fit(sentences)
+vectorizer.vocabulary_
 
-# Um dicionário mapeando palavras em índices inteiros
-word_index = imdb.get_word_index()
+vectorizer.transform(sentences).toarray()
 
-# Os primeiros índices são reservados
-word_index = {k: (v+3) for k, v in word_index.items()}
-word_index["<PAD>"] = 0
-word_index["<START>"] = 1
-word_index["<UNK>"] = 2  # unknown
-word_index["<UNUSED>"] = 3
+# Defining a Baseline Model
 
-reverse_word_index = dict(
-    [(value, key) for (key, value) in word_index.items()]
-)
+df_yelp = df[df['source'] == 'yelp']
+sentences = df_yelp['sentence'].values
+y = df_yelp['label'].values
 
+sentences_train, sentences_test, y_train, y_test = train_test_split(
+    sentences, y, test_size=0.25, random_state=1000)
 
-def decode_review(text):
-    return ' '.join([reverse_word_index.get(i, '?') for i in text])
+vectorizer = CountVectorizer()
+vectorizer.fit(sentences_train)
 
+X_train = vectorizer.transform(sentences_train)
+X_test  = vectorizer.transform(sentences_test)
 
-print("\ndecode_review\n", decode_review(train_data[0]))
+# print("X_train:", X_train)
 
-"""Prepare os dados"""
+classifier = LogisticRegression()
+classifier.fit(X_train, y_train)
+score = classifier.score(X_test, y_test)
 
-train_data = keras.preprocessing.sequence.pad_sequences(
-    train_data, value=word_index["<PAD>"], padding='post', maxlen=256)
+print("Accuracy:", score)
 
-test_data = keras.preprocessing.sequence.pad_sequences(
-    test_data, value=word_index["<PAD>"], padding='post', maxlen=256)
+for source in df['source'].unique():
+    df_source = df[df['source'] == source]
+    sentences = df_source['sentence'].values
+    y = df_source['label'].values
 
-"""Construindo o modelo"""
+    sentences_train, sentences_test, y_train, y_test = train_test_split(
+        sentences, y, test_size=0.25, random_state=1000)
 
-# O formato de entrada é a contagem vocabulário
-# usados pelas avaliações dos filmes (10000 palavras)
+    vectorizer = CountVectorizer()
+    vectorizer.fit(sentences_train)
+    X_train = vectorizer.transform(sentences_train)
+    X_test  = vectorizer.transform(sentences_test)
 
-vocab_size = 10000
+    classifier = LogisticRegression()
+    classifier.fit(X_train, y_train)
+    score = classifier.score(X_test, y_test)
+    print('Accuracy for {} data: {:.4f}'.format(source, score))
 
-model = keras.Sequential()
-model.add(keras.layers.Embedding(vocab_size, 16))
-model.add(keras.layers.GlobalAveragePooling1D())
-model.add(keras.layers.Dense(16, activation='relu'))
-model.add(keras.layers.Dense(1, activation='sigmoid'))
+# First Keras Model
 
+input_dim = X_train.shape[1]  # Number of features
+
+model = Sequential()
+model.add(layers.Dense(10, input_dim=input_dim, activation='relu'))
+model.add(layers.Dense(1, activation='sigmoid'))
+
+model.compile(loss='binary_crossentropy', optimizer='adam',
+              metrics=['accuracy'])
 model.summary()
 
-"""Função Loss e otimizadores (optimizer)"""
+history = model.fit(X_train, y_train,
+                    epochs=100,
+                    verbose=True,
+                    validation_data=(X_test, y_test),
+                    batch_size=10)
 
+loss, accuracy = model.evaluate(X_train, y_train, verbose=False)
+print("Training Accuracy: {:.4f}".format(accuracy))
+
+loss, accuracy = model.evaluate(X_test, y_test, verbose=False)
+print("Testing Accuracy:  {:.4f}".format(accuracy))
+
+def plot_history(history):
+    acc = history.history['acc']
+    val_acc = history.history['val_acc']
+    loss = history.history['loss']
+    val_loss = history.history['val_loss']
+    x = range(1, len(acc) + 1)
+
+    plt.figure(figsize=(12, 5))
+    plt.subplot(1, 2, 1)
+    plt.plot(x, acc, 'b', label='Training acc')
+    plt.plot(x, val_acc, 'r', label='Validation acc')
+    plt.title('Training and validation accuracy')
+    plt.legend()
+    plt.subplot(1, 2, 2)
+    plt.plot(x, loss, 'b', label='Training loss')
+    plt.plot(x, val_loss, 'r', label='Validation loss')
+    plt.title('Training and validation loss')
+    plt.legend()
+
+plot_history(history)
+
+# What Is a Word Embedding?
+# One-Hot Encoding
+
+cities = ['London', 'Berlin', 'Berlin', 'New York', 'London']
+print("cities:", cities)
+
+encoder = LabelEncoder()
+city_labels = encoder.fit_transform(cities)
+city_labels
+
+encoder = OneHotEncoder(sparse=False)
+city_labels = city_labels.reshape((5, 1))
+encoder.fit_transform(city_labels)
+
+# Word Embeddings
+
+tokenizer = Tokenizer(num_words=5000)
+tokenizer.fit_on_texts(sentences_train)
+
+X_train = tokenizer.texts_to_sequences(sentences_train)
+X_test = tokenizer.texts_to_sequences(sentences_test)
+
+# Adding 1 because of reserved 0 index
+vocab_size = len(tokenizer.word_index) + 1
+
+print(sentences_train[2])
+print(X_train[2])
+
+for word in ['the', 'all','fan']:
+    print('{}: {}'.format(word, tokenizer.word_index[word]))
+
+# pad sequences with Keras
+
+maxlen = 100
+
+X_train = pad_sequences(X_train, padding='post', maxlen=maxlen)
+X_test = pad_sequences(X_test, padding='post', maxlen=maxlen)
+
+print(X_train[0, :])
+
+# Keras Embedding Layer
+
+embedding_dim = 50
+
+model = Sequential()
+model.add(layers.Embedding(input_dim=vocab_size, 
+                           output_dim=embedding_dim, 
+                           input_length=maxlen))
+model.add(layers.Flatten())
+model.add(layers.Dense(10, activation='relu'))
+model.add(layers.Dense(1, activation='sigmoid'))
 model.compile(optimizer='adam',
               loss='binary_crossentropy',
               metrics=['accuracy'])
+model.summary()
 
-"""Crie um conjunto de validação"""
+history = model.fit(X_train, y_train,
+                    epochs=20,
+                    verbose=True,
+                    validation_data=(X_test, y_test),
+                    batch_size=10)
 
-x_val = train_data[:10000]
-partial_x_train = train_data[10000:]
+loss, accuracy = model.evaluate(X_train, y_train, verbose=False)
+print("Training Accuracy: {:.4f}".format(accuracy))
 
-y_val = train_labels[:10000]
-partial_y_train = train_labels[10000:]
+loss, accuracy = model.evaluate(X_test, y_test, verbose=False)
+print("Testing Accuracy:  {:.4f}".format(accuracy))
+plot_history(history)
 
-"""Treine o modelo"""
+embedding_dim = 50
 
-history = model.fit(partial_x_train,
-                    partial_y_train,
-                    epochs=40,
-                    batch_size=512,
-                    validation_data=(x_val, y_val),
-                    verbose=1)
+model = Sequential()
+model.add(layers.Embedding(input_dim=vocab_size, 
+                           output_dim=embedding_dim, 
+                           input_length=maxlen))
+model.add(layers.GlobalMaxPool1D())
+model.add(layers.Dense(10, activation='relu'))
+model.add(layers.Dense(1, activation='sigmoid'))
+model.compile(optimizer='adam',
+              loss='binary_crossentropy',
+              metrics=['accuracy'])
+model.summary()
 
-"""Avalie o modelo"""
+history = model.fit(X_train, y_train,
+                    epochs=50,
+                    verbose=False,
+                    validation_data=(X_test, y_test),
+                    batch_size=10)
 
-results = model.evaluate(test_data, test_labels, verbose=2)
+loss, accuracy = model.evaluate(X_train, y_train, verbose=False)
+print("Training Accuracy: {:.4f}".format(accuracy))
 
-print("\nresults:", results)
+loss, accuracy = model.evaluate(X_test, y_test, verbose=False)
+print("Testing Accuracy:  {:.4f}".format(accuracy))
+plot_history(history)
 
-"""Crie um gráfico de acurácia e loss por tempo"""
+# Convolutional Neural Networks (CNN)
 
-history_dict = history.history
-history_dict.keys()
+embedding_dim = 100
 
-# import matplotlib.pyplot as plt
+model = Sequential()
+model.add(layers.Embedding(vocab_size, embedding_dim, input_length=maxlen))
+model.add(layers.Conv1D(128, 5, activation='relu'))
+model.add(layers.GlobalMaxPooling1D())
+model.add(layers.Dense(10, activation='relu'))
+model.add(layers.Dense(1, activation='sigmoid'))
+model.compile(optimizer='adam',
+              loss='binary_crossentropy',
+              metrics=['accuracy'])
+model.summary()
 
-acc = history_dict['accuracy']
-val_acc = history_dict['val_accuracy']
+history = model.fit(X_train, y_train,
+                    epochs=10,
+                    verbose=False,
+                    validation_data=(X_test, y_test),
+                    batch_size=10)
+loss, accuracy = model.evaluate(X_train, y_train, verbose=False)
+print("Training Accuracy: {:.4f}".format(accuracy))
+loss, accuracy = model.evaluate(X_test, y_test, verbose=False)
+print("Testing Accuracy:  {:.4f}".format(accuracy))
+plot_history(history)
 
-loss = history_dict['loss']
-val_loss = history_dict['val_loss']
+# Hyperparameters Optimization
 
-epochs = range(1, len(acc) + 1)
+def create_model(num_filters, kernel_size, vocab_size, embedding_dim, maxlen):
+    model = Sequential()
+    model.add(layers.Embedding(vocab_size, embedding_dim, input_length=maxlen))
+    model.add(layers.Conv1D(num_filters, kernel_size, activation='relu'))
+    model.add(layers.GlobalMaxPooling1D())
+    model.add(layers.Dense(10, activation='relu'))
+    model.add(layers.Dense(1, activation='sigmoid'))
+    model.compile(optimizer='adam',
+                  loss='binary_crossentropy',
+                  metrics=['accuracy'])
+    return model
 
-# Training and validation loss
-# # "bo" is for "blue dot"
-# plt.plot(epochs, loss, 'bo', label='Training loss')
-# # b is for "solid blue line"
-# plt.plot(epochs, val_loss, 'b', label='Validation loss')
-# plt.title('Training and validation loss')
-# plt.xlabel('Epochs')
-# plt.ylabel('Loss')
-# plt.legend()
-# plt.show()
+param_grid = dict(num_filters=[32, 64, 128],
+                  kernel_size=[3, 5, 7],
+                  vocab_size=[5000], 
+                  embedding_dim=[50],
+                  maxlen=[100])
 
-# plt.clf()   # clear figure
+# Main settings
+epochs = 20
+embedding_dim = 50
+maxlen = 100
+output_file = 'output.txt'
 
-# Training and validation accuracy
-# plt.plot(epochs, acc, 'bo', label='Training acc')
-# plt.plot(epochs, val_acc, 'b', label='Validation acc')
-# plt.title('Training and validation accuracy')
-# plt.xlabel('Epochs')
-# plt.ylabel('Accuracy')
-# plt.legend()
-# plt.show()
+# Run grid search for each source (yelp, amazon, imdb)
+for source, frame in df.groupby('source'):
+    print('Running grid search for data set :', source)
+    sentences = df['sentence'].values
+    y = df['label'].values
 
-"""Salvar modelo"""
+    # Train-test split
+    sentences_train, sentences_test, y_train, y_test = train_test_split(
+        sentences, y, test_size=0.25, random_state=1000)
 
-print("salvamento do modelo")
-model.save('src/artefatos/modelo_treinado.h5')
+    # Tokenize words
+    tokenizer = Tokenizer(num_words=5000)
+    tokenizer.fit_on_texts(sentences_train)
+    X_train = tokenizer.texts_to_sequences(sentences_train)
+    X_test = tokenizer.texts_to_sequences(sentences_test)
 
-"""Predição"""
+    # Adding 1 because of reserved 0 index
+    vocab_size = len(tokenizer.word_index) + 1
 
-print("Predição com modelo treinado")
-model.predict(test_data)
+    # Pad sequences with zeros
+    X_train = pad_sequences(X_train, padding='post', maxlen=maxlen)
+    X_test = pad_sequences(X_test, padding='post', maxlen=maxlen)
 
-print("\n")
+    # Parameter grid for grid search
+    param_grid = dict(num_filters=[32, 64, 128],
+                      kernel_size=[3, 5, 7],
+                      vocab_size=[vocab_size],
+                      embedding_dim=[embedding_dim],
+                      maxlen=[maxlen])
+    model = KerasClassifier(build_fn=create_model,
+                            epochs=epochs, batch_size=10,
+                            verbose=False)
+    grid = RandomizedSearchCV(estimator=model, param_distributions=param_grid,
+                              cv=4, verbose=1, n_iter=5)
+    grid_result = grid.fit(X_train, y_train)
+
+    # Evaluate testing set
+    test_accuracy = grid.score(X_test, y_test)
+
+    # Save and evaluate results
+#     prompt = input(f'finished {source}; write to file and proceed? [y/n]')
+#     if prompt.lower() not in {'y', 'true', 'yes'}:
+#         break
+#     with open(output_file, 'w+') as f:
+    s = ('Running {} data set\nBest Accuracy : '
+             '{:.4f}\n{}\nTest Accuracy : {:.4f}\n\n')
+    output_string = s.format(
+        source,
+        grid_result.best_score_,
+        grid_result.best_params_,
+        test_accuracy)
+    print(output_string)
+#         f.write(output_string)

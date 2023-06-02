@@ -1,3 +1,5 @@
+# https://www.tensorflow.org/tutorials/keras/text_classification?hl=pt-br
+
 import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
@@ -41,7 +43,7 @@ def decode_review(text):
     return ' '.join([reverse_word_index.get(i, '?') for i in text])
 
 
-print("\ndecode_review\n", decode_review(train_data[0]))
+print("\ndecode_review:\n", decode_review(train_data[0]), "\n")
 
 """Prepare os dados"""
 
