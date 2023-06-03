@@ -8,6 +8,7 @@ plt.style.use('ggplot')
 import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.keras.models import Sequential
+from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
@@ -18,6 +19,11 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.feature_extraction.text import CountVectorizer
+
+# consts
+
+PATH_VECT = "src/artefatos/count_vectorizer_5.pkl"
+PATH_MODEL = "src/artefatos/modelo_treinado_5.h5"
 
 # Create Dataset
 
@@ -44,9 +50,8 @@ print(f"\ndf_dataset.tail()\n{df_dataset.tail()}")
 
 #
 
-df_dataset_yelp = df_dataset[df_dataset['source'] == 'yelp']
-df_dataset_X = df_dataset_yelp['sentence'].values
-df_dataset_y = df_dataset_yelp['label'].values
+df_dataset_X = df_dataset['sentence'].values
+df_dataset_y = df_dataset['label'].values
 
 X_train, X_test, y_train, y_test = train_test_split(
     df_dataset_X, df_dataset_y, test_size=0.25, random_state=1000)
@@ -54,7 +59,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 vectorizer = CountVectorizer()
 vectorizer.fit(X_train)
 
-with open('src/artefatos/count_vectorizer_4.pkl', 'wb') as file:
+with open(PATH_VECT, 'wb') as file:
     pickle.dump(vectorizer, file)
 
 X_train = vectorizer.transform(X_train)
@@ -66,7 +71,9 @@ model = Sequential()
 model.add(layers.Dense(10, input_dim=X_train.shape[1], activation='relu'))
 model.add(layers.Dense(1, activation='sigmoid'))
 
-model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+model.compile(loss='binary_crossentropy',
+              optimizer='adam',
+              metrics=['accuracy'])
 
 model.summary()
 
@@ -82,27 +89,28 @@ print(f"\nevaluate -> Train -> Loss: {train_loss} - Accuracy: {train_acc}")
 test_loss, test_acc = model.evaluate(X_test, y_test, verbose=False)
 print(f"\nevaluate -> Test -> Loss: {test_loss} - Accuracy: {test_acc}")
 
-model.save("src/artefatos/modelo_treinado_4.h5")
+model.save(PATH_MODEL)
 
-print(f"\nPredict: {model.predict(X_test[0])}")
+# Predict
 
-# prediction
+sentences = [
+    'Rashmi likes ice cream',
+    'Rashmi hates chocolate.'
+]
 
-# with open('src/artefatos/count_vectorizer.pkl', 'rb') as file:
-#     vectorizer = pickle.load(file)
+print(f"\nSentence:{sentences}")
 
-sentences = ['Rashmi likes ice cream', 'Rashmi hates chocolate.']
+vectorizer = None
+with open('src/artefatos/count_vectorizer_4.pkl', 'rb') as file:
+    vectorizer = pickle.load(file)
 
-for item in range(len(sentences)):
+vectorized_sentences = vectorizer.transform(sentences).toarray()
 
-    print(f"Item:{item} - Sentence:{sentences[item]}")
+model = load_model('src/artefatos/modelo_treinado_4.h5')
 
-    sent_to_vect_for_predict = vectorizer.transform(sentences).toarray()
+predicted = model.predict(vectorized_sentences)
 
-    # print("vect_to_predict.shape:", sent_to_vect_for_predict.shape)
-
-    print(f"Predict: {model.predict(sent_to_vect_for_predict)}")
-
-    print("\n")
+print(f"\nPredict: {predicted[0][0]} - Sentense: '{sentences[0]}'")
+print(f"\nPredict: {predicted[1][0]} - Sentense: '{sentences[1]}'")
 
 print("\n")

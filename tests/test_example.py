@@ -7,6 +7,8 @@ class Test_Example:
 
     def test_predicao(self):
 
+        print("test_predicao")
+
         imdb = keras.datasets.imdb
 
         (_, _), (test_data, _) = imdb.load_data(num_words=10000)
@@ -37,7 +39,9 @@ class Test_Example:
 
         print("predito:", model.predict(test_data)[0][0])
 
-    def test_predicao_2(self):
+    def test_predicao_4(self):
+
+        print("test_predicao_4")
 
         print("\n")
         
@@ -45,17 +49,56 @@ class Test_Example:
 
         print(f"Sentence:{sentences}")
 
-        with open('src/artefatos/count_vectorizer.pkl', 'rb') as file:
+        with open('src/artefatos/count_vectorizer_4.pkl', 'rb') as file:
             vectorizer = pickle.load(file)
 
         vectorized_sentences = vectorizer.transform(sentences).toarray()
 
         print("vectorized_sentences.shape:", vectorized_sentences.shape)
 
-        model = keras.models.load_model('src/artefatos/modelo_treinado_2.h5')
+        model = keras.models.load_model('src/artefatos/modelo_treinado_4.h5')
 
         predicted = model.predict(vectorized_sentences)
 
         print(f"Predict: {predicted[0][0]} - Sentense: '{sentences[0]}'")
         print(f"Predict: {predicted[1][0]} - Sentense: '{sentences[1]}'")
         print("\n")
+
+    def test_predicao_5(self):
+
+        print("test_predicao_5")
+
+        PATH_VECT = "src/artefatos/count_vectorizer_5.pkl"
+        PATH_MODEL = "src/artefatos/modelo_treinado_5.h5"
+
+        sentences = [
+            'Rashmi likes ice cream',
+            'Rashmi hates chocolate.',
+            'i hate you',
+            'its terrible this product',
+        ]
+
+        print(f"Sentence:{sentences}")
+
+        vectorizer = None
+        with open(PATH_VECT, 'rb') as file:
+            vectorizer = pickle.load(file)
+
+        vectorized_sentences = vectorizer.transform(sentences).toarray()
+
+        model = keras.models.load_model(PATH_MODEL)
+
+        predicted = model.predict(vectorized_sentences)
+
+        print(f"Predict: {predicted[0][0]} - Sentense: '{sentences[0]}'")
+        print(f"Predict: {predicted[1][0]} - Sentense: '{sentences[1]}'")
+        print(f"Predict: {predicted[2][0]} - Sentense: '{sentences[2]}'")
+        print(f"Predict: {predicted[3][0]} - Sentense: '{sentences[3]}'")
+        print("\n")
+
+    def test_predicao_6(self):
+
+        print("test_predicao_6")
+
+        PATH_VECT = "src/artefatos/count_vectorizer_6.pkl"
+        PATH_MODEL = "src/artefatos/modelo_treinado_6.h5"

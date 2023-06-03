@@ -137,7 +137,7 @@ epochs = range(1, len(acc) + 1)
 """Salvar modelo"""
 
 print("salvamento do modelo")
-model.save('src/artefatos/modelo_treinado.h5')
+model.save('src/artefatos/modelo_treinado_1.h5')
 
 """Predição"""
 

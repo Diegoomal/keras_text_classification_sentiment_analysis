@@ -99,7 +99,7 @@ print(f"\nevaluate -> Train -> Loss: {train_loss} - Accuracy: {train_acc}")
 test_loss, test_acc = model.evaluate(X_test, y_test, verbose=False)
 print(f"\nevaluate -> Test -> Loss: {test_loss} - Accuracy: {test_acc}")
 
-model.save("src/artefatos/modelo_treinado_2.h5")
+model.save("src/artefatos/modelo_treinado_3.h5")
 
 print(f"\nPredict: {model.predict(X_test[0])}")
 
