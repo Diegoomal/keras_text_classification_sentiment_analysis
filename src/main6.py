@@ -9,6 +9,7 @@ import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing.text import one_hot
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
@@ -42,15 +43,17 @@ for source, filepath in filepath_dict.items():
 df_dataset = pd.concat(df_list)
 df_dataset.iloc[0]
 
-print("\n=== show dataset (df_dataset) ===")
+print("\n=== show dataset (df_dataset) ===\n")
 
-print(f"\ndf_dataset.head()\n{df_dataset.head()}")
+print(f"\ndf_dataset.head()\n{df_dataset.head()}\n")
 
 print(f"\ndf_dataset.tail()\n{df_dataset.tail()}\n")
 
 #
 
-
+Vocab_size = 10000
+encoded_sentences = [one_hot(d,Vocab_size) for d in df_dataset['sentence']]
+print(f'encoded sentences: {encoded_sentences}')
 
 #
 
@@ -58,7 +61,7 @@ df_dataset_X = df_dataset['sentence'].values
 df_dataset_y = df_dataset['label'].values
 
 X_train, X_test, y_train, y_test = train_test_split(
-    df_dataset_X, df_dataset_y, test_size=0.25, random_state=1000)
+    df_dataset_X, df_dataset_y, test_size=0.2, random_state=42)
 
 vectorizer = CountVectorizer()
 vectorizer.fit(X_train)
@@ -72,7 +75,9 @@ X_test  = vectorizer.transform(X_test)
 #
 
 model = Sequential()
-model.add(layers.Dense(10, input_dim=X_train.shape[1], activation='relu'))
+model.add(layers.Embedding(input_dim=1024, output_dim=64, input_length=10))
+model.add(layers.GlobalAveragePooling1D())
+model.add(layers.Dense(16, activation='relu'))
 model.add(layers.Dense(1, activation='sigmoid'))
 
 model.compile(loss='binary_crossentropy',

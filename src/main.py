@@ -38,10 +38,8 @@ reverse_word_index = dict(
     [(value, key) for (key, value) in word_index.items()]
 )
 
-
 def decode_review(text):
     return ' '.join([reverse_word_index.get(i, '?') for i in text])
-
 
 print("\ndecode_review:\n", decode_review(train_data[0]), "\n")
 
