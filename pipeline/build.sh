@@ -3,7 +3,7 @@ echo "===== bash build ====="
 
 echo "1) Reset environment"
 
-# source pipeline/destroy.sh
+source pipeline/destroy.sh
 
 echo "2) Conda environment"
 
@@ -25,7 +25,7 @@ echo "4) Generating documentation"
 
 echo "5) Run project"
 
-python src/main.py
+python src/main_tensorflow.py
 
 echo "6) Unity test with pytest"
 

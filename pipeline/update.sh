@@ -8,7 +8,7 @@ conda activate project-env
 
 echo "2) Run project"
 
-python src/main.py
+python src/main_tensorflow.py
 
 echo "3) Unity test with pytest"
 
